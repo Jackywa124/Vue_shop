@@ -7,9 +7,6 @@
     </el-breadcrumb>
     <el-card>
       <el-row>
-        <el-col>
-          <el-button type="primary" class="btn">添加用户</el-button>
-        </el-col>
         <el-table :data="roleList" border stripe>
           <el-table-column type="expand">
             <template slot-scope="scope">
@@ -63,12 +60,14 @@
           ></el-table-column>
           <el-table-column label="操作" align="center">
             <template slot-scope="scope">
-              <el-button size="mini" type="primary">编辑</el-button>
-              <el-button size="mini" type="info">删除</el-button>
               <el-button
                 size="mini"
-                type="danger"
-                @click="showRightDialog(scope.row)"
+                type="primary"
+                @click="showEditDialog(scope.row)"
+                >编辑</el-button
+              >
+              <el-button size="mini" type="info" @click='removeById(scope.row.id)'>删除</el-button>
+              <el-button size="mini" type="danger" @click="showRightDialog(scope.row)"
                 >分配权限</el-button
               >
             </template>
@@ -76,7 +75,12 @@
         </el-table>
       </el-row>
     </el-card>
-    <el-dialog title="提示" :visible.sync="setDialogVisible" width="50%" @close="setDefaultKeys">
+    <el-dialog
+      title="分配权限"
+      :visible.sync="setDialogVisible"
+      width="50%"
+      @close="setDefaultKeys"
+    >
       <el-tree
         :props="treeProps"
         :data="rightsList"
@@ -92,6 +96,30 @@
         <el-button type="primary" @click="setRight">确 定</el-button>
       </span>
     </el-dialog>
+    <el-dialog
+      title="修改角色"
+      :visible.sync="editDialogVisible"
+      width="50%"
+      @close="editDialogClosed"
+    >
+      <el-form
+        :model="editForm"
+        :rules="editFormRules"
+        ref="editFormRef"
+        label-width="100px"
+      >
+        <el-form-item label="角色名称" prop="roleName">
+          <el-input v-model="editForm.roleName"></el-input>
+        </el-form-item>
+        <el-form-item label="角色描述" prop="roleDesc">
+          <el-input v-model="editForm.roleDesc"></el-input>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="editDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="setEditRole">确 定</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -99,6 +127,7 @@
 export default {
   data() {
     return {
+      editDialogVisible: false,
       roleList: [],
       setDialogVisible: false,
       rightsList: [],
@@ -107,7 +136,16 @@ export default {
         children: "children",
       },
       defKeys: [],
-      roleID:''
+      roleID: "",
+      editForm: {},
+      editFormRules: {
+        roleName: [
+          { required: true, message: "请输入角色名", trigger: "blur" },
+        ],
+        roleDesc: [
+          { required: true, message: "请输入角色描述", trigger: "blur" },
+        ],
+      },
     };
   },
   created() {
@@ -137,49 +175,90 @@ export default {
       if (res.meta.status !== 200) {
         this.$message.error("删除权限失败");
       }
-      this.$message.success("删除权限成功");
       role.children = res.data;
     },
     async showRightDialog(role) {
-      this.roleID=role.id
+      this.roleID = role.id;
       const { data: res } = await this.$http.get("rights/tree");
       this.rightsList = res.data;
       this.getLeafKeys(role, this.defKeys);
       this.setDialogVisible = true;
     },
+    async showEditDialog(role) {
+      const {data:res}=await this.$http.get('roles/'+role.id)
+      this.editForm=res.data
+      this.editDialogVisible = true;
+    },
+    editDialogClosed() {
+      this.$refs.editFormRef.resetFields();
+    },
     getLeafKeys(node, arr) {
       if (!node.children) {
-        return arr.push(node.id)
+        return arr.push(node.id);
       }
       node.children.forEach((element) => {
-        this.getLeafKeys(element, arr)
-      })
+        this.getLeafKeys(element, arr);
+      });
     },
-    setDefaultKeys(){
-        this.defKeys=[]
+    setDefaultKeys() {
+      this.defKeys = [];
     },
     async setRight() {
-        const keys=[
-            ...this.$refs.treeRef.getCheckedKeys(),
-            ...this.$refs.treeRef.getHalfCheckedKeys()
-        ]
-        const idStr=keys.join(',')
-        const {data:res} = await this.$http.post(`roles/${this.roleID}/rights`,{rids:idStr})
+      const keys = [
+        ...this.$refs.treeRef.getCheckedKeys(),
+        ...this.$refs.treeRef.getHalfCheckedKeys(),
+      ];
+      const idStr = keys.join(",");
+      const { data: res } = await this.$http.post(
+        `roles/${this.roleID}/rights`,
+        { rids: idStr }
+      );
+      if (res.meta.status !== 200) {
+        this.$message.error("分配权限失败");
+      }
+      this.$message.success("分配权限成功");
+      this.getRoleList();
+      this.setDialogVisible = false;
+    },
+    setEditRole() {
+      this.$refs.editFormRef.validate(async (valid) => {
+        if (!valid) return;
+        const { data: res } = await this.$http.put(
+          "roles/" + this.editForm.roleId,
+          {
+            roleName: this.editForm.roleName,
+            roleDesc: this.editForm.roleDesc,
+          }
+        );
         if (res.meta.status !== 200) {
-            this.$message.error("分配权限失败");
+          return this.$message.error("更新角色名称失败");
         }
-        this.$message.success("分配权限成功");
-        this.getRoleList()
-        this.setDialogVisible=false
+        this.editDialogVisible = false;
+        this.getRoleList();
+      })
+    },
+    async removeById(id){
+      const result = await this.$confirm(
+        "此操作将永久删除该角色, 是否继续?",
+        "提示",
+        {
+          confirmButtonText: "确定",
+          cancelButtonText: "取消",
+          type: "warning",
+        }
+      ).catch((err) => err);
+      if (result !== "confirm") return;
+      const {data:res}=await this.$http.delete('roles/'+id)
+      if (res.meta.status !== 200) {
+        return this.$message.error("删除角色失败");
+      }
+      this.getRoleList()
     }
   }
 };
 </script>
 
 <style lang="less" scoped>
-.btn {
-  margin-bottom: 20px;
-}
 .el-tag {
   margin: 7px;
 }

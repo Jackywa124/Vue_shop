@@ -109,6 +109,7 @@ export default {
   width: 60px;
   height: 40px;
   margin-top: 10px;
+  padding: 10px;
 }
 .toggle{
   background-color: coral;

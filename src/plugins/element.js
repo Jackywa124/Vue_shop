@@ -1,7 +1,12 @@
 import Vue from 'vue'
-import {Tabs,TabPane, Alert, Cascader, Select,Option, Tree, Tag, MessageBox, Dialog, Pagination, Switch, Table,TableColumn, Row,Col, Button, Form, FormItem, Input, Message,Container,Header,Aside,Main,Menu,Submenu,MenuItem,MenuItemGroup,Carousel,CarouselItem,Breadcrumb,BreadcrumbItem,Card } from 'element-ui'
+import {Upload, Checkbox,CheckboxGroup, Steps,Step, Tabs,TabPane, Alert, Cascader, Select,Option, Tree, Tag, MessageBox, Dialog, Pagination, Switch, Table,TableColumn, Row,Col, Button, Form, FormItem, Input, Message,Container,Header,Aside,Main,Menu,Submenu,MenuItem,MenuItemGroup,Carousel,CarouselItem,Breadcrumb,BreadcrumbItem,Card } from 'element-ui'
 
 Vue.use(Button)
+Vue.use(Upload)
+Vue.use(Checkbox)
+Vue.use(CheckboxGroup)
+Vue.use(Steps)
+Vue.use(Step)
 Vue.use(Tabs)
 Vue.use(TabPane)
 Vue.use(Alert)
